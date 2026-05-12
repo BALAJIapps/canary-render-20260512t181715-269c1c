@@ -10,6 +10,7 @@ import {
   CheckCircle,
   ArrowRight,
   GraduationCap,
+  Zap,
 } from "lucide-react";
 import { db } from "@/db";
 import { canaryLesson, canarySubscription } from "@/db/schema";
@@ -85,10 +86,10 @@ export default async function Home() {
       <section className="cf-metrics-strip">
         <div className="cf-container cf-metrics-grid">
           {([
-            { icon: BookOpen, label: "Total Lessons",   value: lessons.length },
-            { icon: CheckCircle, label: "Approved",      value: approvedCount },
-            { icon: Clock,       label: "Pending Review", value: pendingCount },
-            { icon: TrendingUp,  label: "Subscriptions", value: totalSubs },
+            { icon: BookOpen,    label: "Total Lessons",    value: lessons.length },
+            { icon: CheckCircle, label: "Approved",         value: approvedCount },
+            { icon: Clock,       label: "Pending Review",   value: pendingCount },
+            { icon: TrendingUp,  label: "Subscriptions",    value: totalSubs },
           ] as const).map(({ icon: Icon, label, value }) => (
             <div key={label} className="cf-metric-item">
               <div className="cf-metric-icon">
@@ -116,7 +117,7 @@ export default async function Home() {
           </div>
           <div className="cf-search-hint">
             <Search size={14} className="cf-muted-icon" />
-            <span>Search via API</span>
+            <span>Search by title or category</span>
           </div>
         </div>
 
@@ -124,7 +125,7 @@ export default async function Home() {
           <div className="cf-empty-state">
             <BookOpen size={40} className="cf-empty-icon" />
             <p className="cf-empty-title">No lessons in the marketplace yet</p>
-            <p className="cf-empty-sub">POST to /api/canary-lessons to add the first one</p>
+            <p className="cf-empty-sub">Sign up as a teacher to add the first one</p>
           </div>
         ) : (
           <div className="cf-lesson-grid">
@@ -181,20 +182,22 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* API surface panel */}
-          <div className="cf-api-panel">
-            <div className="cf-api-label">Canary API surface</div>
+          {/* How it works — replaces API panel */}
+          <div className="cf-how-panel">
+            <div className="cf-how-label">How it works</div>
             {([
-              { method: "POST",  path: "/api/canary-lessons",              note: "Create lesson" },
-              { method: "GET",   path: "/api/canary-lessons",              note: "List / search" },
-              { method: "PATCH", path: "/api/canary-lessons/:id/approve",  note: "Approve" },
-              { method: "POST",  path: "/api/canary-ai-summary",           note: "AI summary" },
-              { method: "POST",  path: "/api/canary-subscriptions",        note: "Subscribe" },
-            ] as const).map(({ method, path, note }) => (
-              <div key={path + method} className="cf-api-row">
-                <span className={`cf-method cf-method-${method.toLowerCase()}`}>{method}</span>
-                <span className="cf-api-path">{path}</span>
-                <span className="cf-api-note">{note}</span>
+              { icon: Upload,      step: "1", title: "Teacher submits a lesson",    desc: "With title, category, assets, and pricing." },
+              { icon: Zap,         step: "2", title: "AI generates a summary",      desc: "Instant 2–3 sentence overview for students." },
+              { icon: ShieldCheck, step: "3", title: "Admin approves the lesson",   desc: "Review note attached, lesson goes live." },
+              { icon: TrendingUp,  step: "4", title: "Student subscribes",          desc: "Payment-ready checkout, access granted." },
+            ] as const).map(({ icon: Icon, step, title, desc }) => (
+              <div key={step} className="cf-how-row">
+                <div className="cf-how-step">{step}</div>
+                <Icon size={14} className="cf-accent-icon" style={{ flexShrink: 0 }} />
+                <div>
+                  <div className="cf-how-title">{title}</div>
+                  <div className="cf-how-desc">{desc}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -212,13 +215,10 @@ export default async function Home() {
                 <span className="cf-pending-badge">{pendingCount} pending</span>
               )}
             </div>
-            <span className="cf-admin-endpoint">PATCH /api/canary-lessons/:id/approve</span>
           </div>
           <p className="cf-admin-desc">
-            Approve or reject submitted lessons via the API. Approved lessons appear in the
-            marketplace immediately. Set{" "}
-            <code className="cf-inline-code">status: &quot;rejected&quot;</code>{" "}
-            in the request body to reject.
+            Approve or reject submitted lessons. Approved lessons appear in the marketplace immediately.
+            Teachers are notified when their content goes live.
           </p>
         </div>
       </section>
@@ -235,10 +235,8 @@ export default async function Home() {
       </footer>
 
       <style>{`
-        /* CourseForge design tokens — single source of truth */
         .cf-page { min-height: 100vh; background: var(--cf-bg); color: var(--cf-text-primary); font-family: 'Inter Variable', Inter, -apple-system, system-ui, sans-serif; font-feature-settings: 'cv01','ss03'; }
 
-        /* Nav */
         .cf-nav { border-bottom: 1px solid var(--cf-border-subtle); background: rgba(15,16,17,0.92); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
         .cf-nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; }
         .cf-container { max-width: 1152px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
@@ -246,35 +244,30 @@ export default async function Home() {
         .cf-logo-text { font-weight: 590; font-size: 15px; letter-spacing: -0.165px; color: var(--cf-text-primary); }
         .cf-nav-links { display: flex; align-items: center; gap: 4px; }
 
-        /* Buttons */
         .cf-btn-ghost { background: rgba(255,255,255,0.04); border: 1px solid var(--cf-border); border-radius: 6px; color: var(--cf-text-secondary); padding: 5px 12px; font-size: 13px; font-weight: 510; cursor: pointer; }
         .cf-btn-primary { background: var(--cf-accent); border: none; border-radius: 6px; color: #fff; padding: 5px 12px; font-size: 13px; font-weight: 510; cursor: pointer; margin-left: 4px; display: inline-flex; align-items: center; gap: 6px; }
         .cf-btn-lg { padding: 9px 20px; font-size: 14px; }
 
-        /* Hero */
         .cf-hero { padding: 80px 0 64px; max-width: 640px; }
         .cf-hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(113,112,255,0.08); border: 1px solid rgba(113,112,255,0.2); border-radius: 9999px; padding: 3px 10px 3px 6px; margin-bottom: 24px; font-size: 12px; font-weight: 510; color: var(--cf-accent-bright); letter-spacing: 0.01em; }
         .cf-display { font-size: clamp(36px, 5vw, 52px); font-weight: 510; line-height: 1.02; letter-spacing: -1.2px; color: var(--cf-text-primary); margin-bottom: 20px; }
         .cf-hero-sub { font-size: 18px; font-weight: 400; line-height: 1.6; color: var(--cf-text-muted); margin-bottom: 32px; letter-spacing: -0.165px; }
         .cf-hero-cta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
-        /* Metrics */
         .cf-metrics-strip { border-top: 1px solid var(--cf-border-subtle); border-bottom: 1px solid var(--cf-border-subtle); background: rgba(255,255,255,0.015); }
-        .cf-metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; padding: 20px 24px; }
-        @media(min-width:768px){ .cf-metrics-grid { grid-template-columns: repeat(4, 1fr); } }
+        .cf-metrics-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; padding: 20px 24px; }
+        @media(min-width:768px){ .cf-metrics-grid { grid-template-columns: repeat(4,1fr); } }
         .cf-metric-item { display: flex; align-items: center; gap: 12px; }
         .cf-metric-icon { background: rgba(113,112,255,0.08); border: 1px solid rgba(113,112,255,0.15); border-radius: 8px; padding: 8px; flex-shrink: 0; }
         .cf-metric-value { font-size: 20px; font-weight: 590; color: var(--cf-text-primary); letter-spacing: -0.3px; }
         .cf-metric-label { font-size: 12px; color: var(--cf-text-subtle); font-weight: 510; }
 
-        /* Section */
         .cf-section { padding: 64px 0; }
         .cf-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
         .cf-heading { font-size: 24px; font-weight: 510; letter-spacing: -0.288px; color: var(--cf-text-primary); margin-bottom: 4px; }
         .cf-section-sub { font-size: 14px; color: var(--cf-text-muted); }
         .cf-search-hint { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 6px 12px; font-size: 13px; color: var(--cf-text-subtle); }
 
-        /* Lesson cards */
         .cf-lesson-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
         @media(min-width:768px){ .cf-lesson-grid { grid-template-columns: repeat(2,1fr); } }
         @media(min-width:1024px){ .cf-lesson-grid { grid-template-columns: repeat(3,1fr); } }
@@ -296,13 +289,11 @@ export default async function Home() {
         .cf-card-price { font-size: 14px; font-weight: 590; color: var(--cf-text-primary); }
         .cf-price-free { color: var(--cf-success); }
 
-        /* Empty state */
         .cf-empty-state { text-align: center; padding: 64px 0; border: 1px dashed rgba(255,255,255,0.07); border-radius: 12px; }
-        .cf-empty-icon { color: var(--cf-surface); margin: 0 auto 16px; display: block; }
+        .cf-empty-icon { color: #3e3e44; margin: 0 auto 16px; display: block; }
         .cf-empty-title { font-size: 16px; color: var(--cf-text-subtle); margin-bottom: 8px; }
-        .cf-empty-sub { font-size: 13px; color: var(--cf-surface-hover); }
+        .cf-empty-sub { font-size: 13px; color: #3e3e44; }
 
-        /* Features section */
         .cf-features-section { border-top: 1px solid var(--cf-border-subtle); background: rgba(255,255,255,0.01); }
         .cf-features-grid { display: grid; gap: 32px; padding: 64px 24px; grid-template-columns: 1fr; }
         @media(min-width:768px){ .cf-features-grid { grid-template-columns: 2fr 1fr; } }
@@ -313,38 +304,29 @@ export default async function Home() {
         .cf-feature-title { font-size: 13px; font-weight: 590; color: var(--cf-text-primary); margin: 8px 0 5px; }
         .cf-feature-desc { font-size: 12px; color: var(--cf-text-muted); line-height: 1.5; }
 
-        /* API panel */
-        .cf-api-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 20px; align-self: start; }
-        .cf-api-label { font-size: 11px; font-weight: 510; color: var(--cf-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
-        .cf-api-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .cf-api-path { font-size: 11px; font-family: ui-monospace, SF Mono, Menlo, monospace; color: var(--cf-text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cf-api-note { font-size: 11px; color: var(--cf-text-subtle); flex-shrink: 0; }
-        .cf-method { font-size: 10px; font-weight: 590; font-family: ui-monospace, SF Mono, Menlo, monospace; padding: 1px 5px; border-radius: 3px; min-width: 40px; text-align: center; }
-        .cf-method-post  { background: rgba(16,185,129,0.12); color: var(--cf-success); }
-        .cf-method-get   { background: rgba(113,112,255,0.12); color: var(--cf-accent-bright); }
-        .cf-method-patch { background: rgba(245,158,11,0.12);  color: var(--cf-warning); }
+        .cf-how-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 20px; align-self: start; }
+        .cf-how-label { font-size: 11px; font-weight: 510; color: var(--cf-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+        .cf-how-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .cf-how-step { width: 18px; height: 18px; border-radius: 50%; background: rgba(113,112,255,0.15); border: 1px solid rgba(113,112,255,0.25); color: var(--cf-accent-bright); font-size: 10px; font-weight: 590; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .cf-how-title { font-size: 12px; font-weight: 590; color: var(--cf-text-primary); margin-bottom: 2px; }
+        .cf-how-desc { font-size: 11px; color: var(--cf-text-subtle); line-height: 1.4; }
 
-        /* Admin */
         .cf-admin-section { padding-bottom: 48px; }
         .cf-admin-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 24px 28px; }
         .cf-admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
         .cf-admin-title-row { display: flex; align-items: center; gap: 12px; }
         .cf-admin-title { font-size: 16px; font-weight: 590; color: var(--cf-text-primary); letter-spacing: -0.2px; }
-        .cf-admin-endpoint { font-size: 12px; color: var(--cf-text-subtle); }
         .cf-admin-desc { font-size: 13px; color: var(--cf-text-muted); line-height: 1.6; }
         .cf-pending-badge { background: rgba(245,158,11,0.12); color: var(--cf-warning); border: 1px solid rgba(245,158,11,0.2); border-radius: 9999px; font-size: 11px; font-weight: 590; padding: 1px 8px; }
-        .cf-inline-code { background: rgba(255,255,255,0.06); border-radius: 3px; padding: 1px 5px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--cf-text-secondary); }
 
-        /* Footer */
         .cf-footer { border-top: 1px solid var(--cf-border-subtle); padding: 24px 0; margin-top: 16px; }
         .cf-footer-inner { display: flex; align-items: center; justify-content: space-between; }
         .cf-footer-brand { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--cf-text-subtle); }
-        .cf-footer-credits { font-size: 12px; color: var(--cf-surface); }
+        .cf-footer-credits { font-size: 12px; color: #3e3e44; }
 
-        /* Icons */
         .cf-accent-icon { color: var(--cf-accent-bright); }
         .cf-muted-icon  { color: var(--cf-text-subtle); }
-        .cf-subtle-icon { color: var(--cf-surface); }
+        .cf-subtle-icon { color: #3e3e44; }
       `}</style>
     </main>
   );
