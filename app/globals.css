@@ -40,6 +40,10 @@
   --cf-warning:       #f59e0b;
   --cf-error:         #ef4444;
 
+  /* Font variables */
+  --font-display: var(--font-syne), 'Syne', system-ui, sans-serif;
+  --font-body:    var(--font-inter), Inter, -apple-system, system-ui, sans-serif;
+
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
