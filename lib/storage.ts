@@ -25,6 +25,11 @@ function detectProvider(): StorageProvider {
   return "local";
 }
 
+/** Convert Buffer to a plain ArrayBuffer so it is accepted as BlobPart. */
+function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
 // ── Unified interface ─────────────────────────────────────────────
 
 export interface UploadResult {
@@ -62,7 +67,7 @@ export async function getFileUrl(key: string): Promise<string> {
     case "r2":
       return `${process.env.R2_PUBLIC_URL || ""}/${key}`;
     case "vercel-blob":
-      return key; // Vercel Blob URLs are the key
+      return key;
     case "local":
       return `/uploads/${key}`;
   }
@@ -78,7 +83,6 @@ export async function deleteFile(key: string): Promise<void> {
     case "vercel-blob":
       await deleteFromVercelBlob(key);
       break;
-    // uploadthing and local: deletion is more complex, skip for now
   }
 }
 
@@ -93,13 +97,12 @@ async function uploadToUploadthing(
   if (!secret) throw new Error("UPLOADTHING_SECRET not set");
 
   const formData = new FormData();
-  // Cast Buffer to Uint8Array so Blob constructor accepts it under strict TS lib types
-  const blobPart: BlobPart = file instanceof Buffer
-    ? new Uint8Array(file.buffer, file.byteOffset, file.byteLength)
-    : file;
-  const blob = file instanceof File
-    ? file
-    : new Blob([blobPart], { type: options?.contentType || "application/octet-stream" });
+  const blob =
+    file instanceof File
+      ? file
+      : new Blob([bufferToArrayBuffer(file)], {
+          type: options?.contentType || "application/octet-stream",
+        });
   formData.append("file", blob, filename);
 
   const resp = await fetch("https://uploadthing.com/api/uploadFiles", {
@@ -133,11 +136,14 @@ async function uploadToR2(
   const endpoint = process.env.R2_ENDPOINT;
 
   if (!accessKeyId || !secretAccessKey || !bucket || !endpoint) {
-    throw new Error("R2 env vars not set (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT)");
+    throw new Error(
+      "R2 env vars not set (R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT)",
+    );
   }
 
   const key = options?.folder ? `${options.folder}/${filename}` : filename;
-  const body = file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
+  const body =
+    file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
 
   const url = `${endpoint}/${bucket}/${key}`;
   const resp = await fetch(url, {
@@ -174,8 +180,11 @@ async function uploadToVercelBlob(
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) throw new Error("BLOB_READ_WRITE_TOKEN not set");
 
-  const body = file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
-  const pathname = options?.folder ? `${options.folder}/${filename}` : filename;
+  const body =
+    file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
+  const pathname = options?.folder
+    ? `${options.folder}/${filename}`
+    : filename;
 
   const resp = await fetch(`https://blob.vercel-storage.com/${pathname}`, {
     method: "PUT",
@@ -200,10 +209,13 @@ async function uploadToVercelBlob(
 async function deleteFromVercelBlob(key: string): Promise<void> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) return;
-  await fetch(`https://blob.vercel-storage.com?url=${encodeURIComponent(key)}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
-  });
+  await fetch(
+    `https://blob.vercel-storage.com?url=${encodeURIComponent(key)}`,
+    {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    },
+  );
 }
 
 // ── Local filesystem (dev fallback) ───────────────────────────────
@@ -216,11 +228,17 @@ async function uploadToLocal(
   const fs = await import("fs/promises");
   const path = await import("path");
 
-  const dir = path.join(process.cwd(), "public", "uploads", options?.folder || "");
+  const dir = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    options?.folder || "",
+  );
   await fs.mkdir(dir, { recursive: true });
 
   const filepath = path.join(dir, filename);
-  const body = file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
+  const body =
+    file instanceof Buffer ? file : Buffer.from(await file.arrayBuffer());
   await fs.writeFile(filepath, body);
 
   const key = options?.folder ? `${options.folder}/${filename}` : filename;
