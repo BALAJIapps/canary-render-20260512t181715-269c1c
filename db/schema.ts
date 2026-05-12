@@ -60,7 +60,7 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/* ─────────── App tables ─────────── */
+/* ─────────── Stripe / billing tables ─────────── */
 
 export const subscription = pgTable("subscription", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -77,15 +77,13 @@ export const subscription = pgTable("subscription", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/* Webhook idempotency */
 export const stripeEvent = pgTable("stripe_event", {
-  id: text("id").primaryKey(), // Stripe event.id
+  id: text("id").primaryKey(),
   type: text("type").notNull(),
   processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
   payload: jsonb("payload").notNull(),
 });
 
-/* Example feature table — specialist agents extend/replace this */
 export const todo = pgTable("todo", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
@@ -97,7 +95,42 @@ export const todo = pgTable("todo", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/* ─────────── Canary: Course Marketplace tables ─────────── */
+
+export const canaryLesson = pgTable("canary_lessons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teacherEmail: text("teacher_email").notNull(),
+  title: text("title").notNull(),
+  category: text("category").notNull().default("general"),
+  lessonText: text("lesson_text").notNull(),
+  assetName: text("asset_name"),
+  assetUrl: text("asset_url"),
+  priceCents: integer("price_cents").notNull().default(0),
+  aiSummary: text("ai_summary"),
+  status: text("status").notNull().default("pending"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const canarySubscription = pgTable("canary_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentEmail: text("student_email").notNull(),
+  lessonId: uuid("lesson_id")
+    .notNull()
+    .references(() => canaryLesson.id, { onDelete: "cascade" }),
+  paymentReady: boolean("payment_ready").notNull().default(false),
+  stripeCheckoutUrl: text("stripe_checkout_url"),
+  stripeSessionId: text("stripe_session_id"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof user.$inferSelect;
 export type Session = typeof session.$inferSelect;
 export type Subscription = typeof subscription.$inferSelect;
 export type Todo = typeof todo.$inferSelect;
+export type CanaryLesson = typeof canaryLesson.$inferSelect;
+export type CanarySubscription = typeof canarySubscription.$inferSelect;
